@@ -1,0 +1,73 @@
+import numpy as np
+
+def fitness_function(solution):
+    distance = 0
+    for i in range(len(solution) - 1):
+        distance += distance_matrix[solution[i]][solution[i + 1]]
+    distance += distance_matrix[solution[-1]][solution[0]]
+    return distance
+
+def gwo(obj_fn, dim, wolves, iters, lb, ub):
+    pos = np.random.uniform(low=lb, high=ub, size=(wolves, dim))
+    a_pos, b_pos, d_pos = np.zeros(dim), np.zeros(dim), np.zeros(dim)
+    a_score, b_score, d_score = float("inf"), float("inf"), float("inf")
+
+    for t in range(iters):
+        for i in range(wolves):
+            fit = obj_fn(pos[i])
+            if fit < a_score:
+                d_score, d_pos = b_score, b_pos.copy()
+                b_score, b_pos = a_score, a_pos.copy()
+                a_score, a_pos = fit, pos[i].copy()
+            elif fit < b_score:
+                d_score, d_pos = b_score, b_pos.copy()
+                b_score, b_pos = fit, pos[i].copy()
+            elif fit < d_score:
+                d_score, d_pos = fit, pos[i].copy()
+
+        a = 2 - t * (2 / iters)
+        for i in range(wolves):
+            for j in range(dim):
+                r1, r2 = np.random.rand(), np.random.rand()
+                A1, C1 = 2 * a * r1 - a, 2 * r2
+                D_a = abs(C1 * a_pos[j] - pos[i, j])
+                X1 = a_pos[j] - A1 * D_a
+
+                r1, r2 = np.random.rand(), np.random.rand()
+                A2, C2 = 2 * a * r1 - a, 2 * r2
+                D_b = abs(C2 * b_pos[j] - pos[i, j])
+                X2 = b_pos[j] - A2 * D_b
+
+                r1, r2 = np.random.rand(), np.random.rand()
+                A3, C3 = 2 * a * r1 - a, 2 * r2
+                D_d = abs(C3 * d_pos[j] - pos[i, j])
+                X3 = d_pos[j] - A3 * D_d
+
+                pos[i, j] = (X1 + X2 + X3) / 3
+            pos[i] = np.clip(pos[i], lb, ub)
+
+        print(f"Iter {t+1}/{iters}, Best Score: {a_score}")
+    print("Updating positions and scores complete for all wolves.")
+    return a_score, a_pos
+
+def create_distance_matrix(n_cities):
+    np.random.seed(0)
+    matrix = np.random.randint(1, 100, size=(n_cities, n_cities))
+    np.fill_diagonal(matrix, 0)
+    return matrix
+
+def objective_function(solution):
+    indices = np.argsort(solution)
+    return fitness_function(indices)
+
+n_cities = 10
+wolves = 20
+iters = 30
+lb, ub = -10, 10
+
+distance_matrix = create_distance_matrix(n_cities)
+best_score, best_pos = gwo(objective_function, n_cities, wolves, iters, lb, ub)
+
+print(f"Best Score: {best_score}")
+print(f"Best Position (Order): {np.argsort(best_pos)}")
+print("Aditi C (1BM22CS014)")
